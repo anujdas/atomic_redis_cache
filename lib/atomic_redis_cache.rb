@@ -25,7 +25,7 @@ module AtomicRedisCache
 
       now        = Time.now.to_i
       ttl        = expires_in + retries * race_ttl
-      t_key      = "timer:#{key}"
+      t_key      = timer(key)
 
       if val = redis.get(key)              # cache hit
         if redis.get(t_key).to_i < now     # expired entry or dne
@@ -52,9 +52,34 @@ module AtomicRedisCache
       Marshal.load(val)
     end
 
+    def read(key)
+      val, exp = redis.mget key, timer(key)
+      Marshal.dump(val) if exp > Time.now.to_i
+    end
+
+    def write(key, val, opts={})
+      expires_in = opts[:expires_in] || DEFAULT_EXPIRATION
+      race_ttl   = opts[:race_condition_ttl] || DEFAULT_RACE_TTL
+      retries    = opts[:max_retries] || MAX_RETRIES
+      ttl        = expires_in + retries * race_ttl
+      expiry     = Time.now.to_i + expires_in
+
+      response = redis.multi do
+        redis.setex key, ttl, Marshal.dump(val)
+        redis.set timer(key), expiry
+      end
+
+      response.all? { |ret| ret == 'OK' }
+    end
+
     def delete(key)
       redis.del(key) == 1
     end
+
+    def timer(key)
+      "timer:#{key}"
+    end
+    private :timer
 
     def redis
       raise 'AtomicRedisCache.redis must be set before use.' unless @redis
