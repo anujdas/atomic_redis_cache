@@ -1,5 +1,9 @@
 # AtomicRedisCache
 
+[![Build Status](https://travis-ci.org/anujdas/atomic_redis_cache.png?branch=master)](https://travis-ci.org/anujdas/atomic_redis_cache) 
+
+[![Gem Version](https://badge.fury.io/rb/atomic_redis_cache.png)](http://badge.fury.io/rb/atomic_redis_cache)
+
 AtomicRedisCache is an overlay on top of Redis that allows you to use it much
 like the Rails cache (ActiveSupport::Cache). Usage centers around the `.fetch()`
 method, which reads from a key if present and valid, or else evaluates the
