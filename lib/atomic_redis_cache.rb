@@ -52,6 +52,10 @@ module AtomicRedisCache
       Marshal.load(val)
     end
 
+    def delete(key)
+      redis.del(key) == 1
+    end
+
     def redis
       raise 'AtomicRedisCache.redis must be set before use.' unless @redis
       @redis.respond_to?(:call) ? @redis.call : @redis
