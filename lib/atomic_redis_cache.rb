@@ -52,11 +52,16 @@ module AtomicRedisCache
       Marshal.load(val)
     end
 
+    # Fetch from the cache atomically; return nil if empty or expired
     def read(key)
       val, exp = redis.mget key, timer(key)
-      Marshal.dump(val) if exp > Time.now.to_i
+      Marshal.load(val) unless exp.to_i < Time.now.to_i
     end
 
+    # Write to the cache unconditionally, returns success as boolean
+    # Accepts the same options and uses the same defaults as .fetch()
+    # Note that write() ignores locks, so it can be called multiple times;
+    # prefer .fetch() unless absolutely necessary.
     def write(key, val, opts={})
       expires_in = opts[:expires_in] || DEFAULT_EXPIRATION
       race_ttl   = opts[:race_condition_ttl] || DEFAULT_RACE_TTL
@@ -72,8 +77,9 @@ module AtomicRedisCache
       response.all? { |ret| ret == 'OK' }
     end
 
+    # Delete the cache entry completely, including timer
     def delete(key)
-      redis.del(key) == 1
+      redis.del(key, timer(key)) == 2
     end
 
     def timer(key)
@@ -82,7 +88,7 @@ module AtomicRedisCache
     private :timer
 
     def redis
-      raise 'AtomicRedisCache.redis must be set before use.' unless @redis
+      raise ArgumentError.new('AtomicRedisCache.redis must be set') unless @redis
       @redis.respond_to?(:call) ? @redis.call : @redis
     end
     private :redis

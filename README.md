@@ -1,16 +1,17 @@
 # AtomicRedisCache
 
-AtomicRedisCache is an overlay on top of the redis-rb library that allows you to
-use Redis much like the Rails cache (ActiveSupport::Cache). It duplicates only
-the .fetch() method, which reads from a key if present and valid, or else
-evaluates the passed block and saves it as the new value at that key. The
-foremost design goals apply mainly to webapps and are twofold:
-- when cache expires, to avoid dogpile/thundering herd from multiple processes
-recalculating by serving the cached value to all but one process, then updating
-atomically when calculation by that process completes
+AtomicRedisCache is an overlay on top of Redis that allows you to use it much
+like the Rails cache (ActiveSupport::Cache). Usage centers around the `.fetch()`
+method, which reads from a key if present and valid, or else evaluates the
+passed block and saves it as the new value at that key. The foremost design
+goals apply mainly to webapps and are twofold:
+- when the cached value expires, recalculate in the first process to access it,
+  serving the old value to all other processes until completion, thus avoiding
+  the dogpile/thundering herd effect
+  (http://en.wikipedia.org/wiki/Thundering_herd_problem)
 - when calculation takes too long (i.e., due to db, network calls) and a
-recently expired cached value is available, to fail fast with it and try
-calculating again later (for a reaosnable # of retries)
+  recently expired cached value is available, fail fast with it and try
+  calculating again later (for a reasonable # of retries)
 
 ## Installation
 
