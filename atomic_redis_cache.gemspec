@@ -23,5 +23,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'fakeredis'
-  spec.add_development_dependency 'timecop'
+  if RUBY_VERSION == '1.8.7'
+    spec.add_development_dependency 'timecop', '0.5.2'
+  else
+    spec.add_development_dependency 'timecop'
+  end
 end

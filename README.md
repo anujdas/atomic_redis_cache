@@ -39,16 +39,36 @@ AtomicRedisCache.redis = Redis.new(:host => '127.0.0.1', :port => 6379)
 Then use it as you would Rails.cache:
 
 ```
->> v = AtomicRedisCache.fetch('key') { Faraday.get('example.com').status }
+>> AtomicRedisCache.fetch('key') { Faraday.get('http://example.com').status }
 => 200  # network call made
->> v = AtomicRedisCache.fetch('key') { }
-=> 200  # value read from cache
+>> AtomicRedisCache.fetch('key') { raise }
+=> 200  # value read from cache; block not called
+>> AtomicRedisCache.write('key', {:new => 'value'})
+=> true
+>> AtomicRedisCache.read('key')
+=> {:new => "value"}
+>> AtomicRedisCache.delete('key')
+=> true
+>> AtomicRedisCache.read('key')
+=> nil
 ```
 
-There are a couple of configurable options can be set per fetch:
+There are a couple of configurable options that can be set per fetch/write:
 - `:expires_in` - expiry in seconds; defaults to a day
-- `:race_condition_ttl` - time to lock down key for recalculation
-- `:max_retries` - # of times to retry cache refresh before expiring
+- `:race_condition_ttl` - time to lock down key for recalculation; default 30s
+- `:max_retries` - # of times to retry cache refresh before expiring; default 3
+
+AtomicRedisCache is most useful when wrapped around expensive but rarely
+changing calls, such as network APIs, that are hit frequently by many
+processes. For instance,
+
+```
+AtomicRedisCache.fetch('search.results') do
+  JSON.parse(Faraday.get('https://internal-api/search?q=value').body)
+end
+```
+
+will prevent your `internal-api` from getting pounded when the cached expires.
 
 ## Contributing
 
